@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUSE Customer Bot - 고객응대 AI 챗봇</title>
+    <title>MUSE Customer Bot - AI Customer Service Chatbot</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,19 +16,19 @@
                     <span class="logo-text">MUSE Studio</span>
                 </div>
                 <nav class="nav">
-                    <a href="#services">서비스</a>
-                    <a href="#portfolio">포트폴리오</a>
-                    <a href="#pricing">가격</a>
-                    <a href="#contact">문의</a>
+                    <a href="#services" data-i18n="nav.services">서비스</a>
+                    <a href="#portfolio" data-i18n="nav.portfolio">포트폴리오</a>
+                    <a href="#pricing" data-i18n="nav.pricing">가격</a>
+                    <a href="#contact" data-i18n="nav.contact">문의</a>
                 </nav>
             </div>
         </header>
 
         <section class="hero">
             <div class="container">
-                <h1>비즈니스를 위한<br><span class="highlight">맞춤형 솔루션</span></h1>
-                <p>웹사이트, 앱, AI 솔루션까지<br>전문가가 함께합니다</p>
-                <button class="cta-button" onclick="MuseBot.open()">
+                <h1><span data-i18n="hero.title">비즈니스를 위한</span><br><span class="highlight" data-i18n="hero.titleHighlight">맞춤형 솔루션</span></h1>
+                <p data-i18n="hero.subtitle">웹사이트, 앱, AI 솔루션까지<br>전문가가 함께합니다</p>
+                <button class="cta-button" onclick="MuseBot.open()" data-i18n="hero.cta">
                     무료 상담 시작하기
                 </button>
             </div>
@@ -36,31 +36,31 @@
 
         <section id="services" class="services">
             <div class="container">
-                <h2>서비스</h2>
+                <h2 data-i18n="services.title">서비스</h2>
                 <div class="service-grid">
                     <div class="service-card">
                         <div class="service-icon">🌐</div>
-                        <h3>웹사이트 제작</h3>
-                        <p>반응형 웹사이트, 쇼핑몰, 랜딩페이지</p>
-                        <span class="price">50만원~</span>
+                        <h3 data-i18n="services.web.title">웹사이트 제작</h3>
+                        <p data-i18n="services.web.desc">반응형 웹사이트, 쇼핑몰, 랜딩페이지</p>
+                        <span class="price" data-i18n="services.web.price">50만원~</span>
                     </div>
                     <div class="service-card">
                         <div class="service-icon">📱</div>
-                        <h3>앱 개발</h3>
-                        <p>iOS, Android 네이티브 및 크로스플랫폼</p>
-                        <span class="price">300만원~</span>
+                        <h3 data-i18n="services.app.title">앱 개발</h3>
+                        <p data-i18n="services.app.desc">iOS, Android 네이티브 및 크로스플랫폼</p>
+                        <span class="price" data-i18n="services.app.price">300만원~</span>
                     </div>
                     <div class="service-card">
                         <div class="service-icon">🤖</div>
-                        <h3>AI 솔루션</h3>
-                        <p>챗봇, 자동화, 데이터 분석</p>
-                        <span class="price">100만원~</span>
+                        <h3 data-i18n="services.ai.title">AI 솔루션</h3>
+                        <p data-i18n="services.ai.desc">챗봇, 자동화, 데이터 분석</p>
+                        <span class="price" data-i18n="services.ai.price">100만원~</span>
                     </div>
                     <div class="service-card">
                         <div class="service-icon">🎨</div>
-                        <h3>디자인</h3>
-                        <p>UI/UX, 브랜딩, 그래픽 디자인</p>
-                        <span class="price">30만원~</span>
+                        <h3 data-i18n="services.design.title">디자인</h3>
+                        <p data-i18n="services.design.desc">UI/UX, 브랜딩, 그래픽 디자인</p>
+                        <span class="price" data-i18n="services.design.price">30만원~</span>
                     </div>
                 </div>
             </div>
@@ -68,44 +68,44 @@
 
         <section id="pricing" class="pricing">
             <div class="container">
-                <h2>가격 안내</h2>
-                <p class="section-desc">프로젝트 규모에 따라 맞춤 견적을 제공합니다</p>
+                <h2 data-i18n="pricing.title">가격 안내</h2>
+                <p class="section-desc" data-i18n="pricing.subtitle">프로젝트 규모에 따라 맞춤 견적을 제공합니다</p>
                 <div class="pricing-grid">
                     <div class="pricing-card">
-                        <h3>Basic</h3>
-                        <div class="price-amount">50만원~</div>
-                        <ul>
-                            <li>5페이지 이내</li>
-                            <li>반응형 디자인</li>
-                            <li>기본 SEO</li>
-                            <li>1개월 무료 유지보수</li>
+                        <h3 data-i18n="pricing.basic.name">Basic</h3>
+                        <div class="price-amount" data-i18n="pricing.basic.price">50만원~</div>
+                        <ul id="basic-features">
+                            <li data-i18n="pricing.basic.features.0">5페이지 이내</li>
+                            <li data-i18n="pricing.basic.features.1">반응형 디자인</li>
+                            <li data-i18n="pricing.basic.features.2">기본 SEO</li>
+                            <li data-i18n="pricing.basic.features.3">1개월 무료 유지보수</li>
                         </ul>
-                        <button onclick="MuseBot.openWithMessage('Basic 패키지 견적 문의합니다')">견적 받기</button>
+                        <button onclick="MuseBot.openWithQuote('Basic')" data-i18n="pricing.getQuote">견적 받기</button>
                     </div>
                     <div class="pricing-card featured">
-                        <div class="badge">인기</div>
-                        <h3>Professional</h3>
-                        <div class="price-amount">150만원~</div>
-                        <ul>
-                            <li>10페이지 이내</li>
-                            <li>프리미엄 디자인</li>
-                            <li>고급 SEO + 애널리틱스</li>
-                            <li>관리자 페이지</li>
-                            <li>3개월 무료 유지보수</li>
+                        <div class="badge" data-i18n="pricing.popular">인기</div>
+                        <h3 data-i18n="pricing.professional.name">Professional</h3>
+                        <div class="price-amount" data-i18n="pricing.professional.price">150만원~</div>
+                        <ul id="professional-features">
+                            <li data-i18n="pricing.professional.features.0">10페이지 이내</li>
+                            <li data-i18n="pricing.professional.features.1">프리미엄 디자인</li>
+                            <li data-i18n="pricing.professional.features.2">고급 SEO + 애널리틱스</li>
+                            <li data-i18n="pricing.professional.features.3">관리자 페이지</li>
+                            <li data-i18n="pricing.professional.features.4">3개월 무료 유지보수</li>
                         </ul>
-                        <button onclick="MuseBot.openWithMessage('Professional 패키지 견적 문의합니다')">견적 받기</button>
+                        <button onclick="MuseBot.openWithQuote('Professional')" data-i18n="pricing.getQuote">견적 받기</button>
                     </div>
                     <div class="pricing-card">
-                        <h3>Enterprise</h3>
-                        <div class="price-amount">맞춤 견적</div>
-                        <ul>
-                            <li>무제한 페이지</li>
-                            <li>커스텀 기능 개발</li>
-                            <li>API 연동</li>
-                            <li>전담 매니저</li>
-                            <li>12개월 유지보수</li>
+                        <h3 data-i18n="pricing.enterprise.name">Enterprise</h3>
+                        <div class="price-amount" data-i18n="pricing.custom">맞춤 견적</div>
+                        <ul id="enterprise-features">
+                            <li data-i18n="pricing.enterprise.features.0">무제한 페이지</li>
+                            <li data-i18n="pricing.enterprise.features.1">커스텀 기능 개발</li>
+                            <li data-i18n="pricing.enterprise.features.2">API 연동</li>
+                            <li data-i18n="pricing.enterprise.features.3">전담 매니저</li>
+                            <li data-i18n="pricing.enterprise.features.4">12개월 유지보수</li>
                         </ul>
-                        <button onclick="MuseBot.openWithMessage('Enterprise 맞춤 견적 문의합니다')">상담 요청</button>
+                        <button onclick="MuseBot.openWithQuote('Enterprise')" data-i18n="pricing.consultation">상담 요청</button>
                     </div>
                 </div>
             </div>
@@ -113,7 +113,7 @@
 
         <footer class="footer">
             <div class="container">
-                <p>© 2024 MUSE Studio. 챗봇으로 언제든 문의하세요!</p>
+                <p data-i18n="footer.copyright">© 2024 MUSE Studio. 챗봇으로 언제든 문의하세요!</p>
             </div>
         </footer>
     </div>
@@ -131,10 +131,10 @@
             <div class="chatbot-header">
                 <div class="chatbot-avatar">🤖</div>
                 <div class="chatbot-info">
-                    <div class="chatbot-name">MUSE 상담봇</div>
+                    <div class="chatbot-name" data-i18n="chatbot.name">MUSE 상담봇</div>
                     <div class="chatbot-status">
                         <span class="status-dot"></span>
-                        온라인
+                        <span data-i18n="chatbot.status">온라인</span>
                     </div>
                 </div>
                 <button class="chatbot-close" onclick="MuseBot.close()">✕</button>
@@ -154,6 +154,7 @@
                     type="text"
                     id="chatbot-input"
                     class="chatbot-input"
+                    data-i18n="chatbot.placeholder"
                     placeholder="메시지를 입력하세요..."
                     onkeypress="if(event.key === 'Enter') MuseBot.sendMessage()"
                 >
@@ -164,6 +165,7 @@
         </div>
     </div>
 
+    <script src="js/i18n.js"></script>
     <script src="js/config.js"></script>
     <script src="js/responses.js"></script>
     <script src="js/chatbot.js"></script>

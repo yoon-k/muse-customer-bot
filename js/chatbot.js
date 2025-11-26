@@ -1,6 +1,6 @@
 /**
  * MUSE Customer Bot - Core Chatbot Logic
- * 챗봇 핵심 로직
+ * 챗봇 핵심 로직 (다국어 지원)
  */
 
 const MuseBot = {
@@ -15,7 +15,6 @@ const MuseBot = {
     // 초기화
     init() {
         this.sessionId = this.generateSessionId();
-        // 닫을 때 대화가 지워지므로 loadConversation 불필요
         console.log('MUSE Customer Bot initialized');
     },
 
@@ -48,18 +47,14 @@ const MuseBot = {
 
     // 대화 초기화
     clearConversation() {
-        // 화면의 메시지 삭제
         const container = document.getElementById('chatbot-messages');
         container.innerHTML = '';
 
-        // 빠른 응답 버튼 삭제
         const quickReplies = document.getElementById('quick-replies');
         if (quickReplies) quickReplies.innerHTML = '';
 
-        // LocalStorage 대화 기록 삭제
         localStorage.removeItem('muse_chat_history');
 
-        // 상태 초기화
         this.conversationState = 'idle';
         this.currentQuote = null;
         this.orderData = {};
@@ -75,10 +70,23 @@ const MuseBot = {
         }, 500);
     },
 
-    // 환영 메시지
+    // 견적 문의와 함께 열기 (다국어)
+    openWithQuote(packageName) {
+        this.open();
+        setTimeout(() => {
+            const msg = I18N.t('messages.quoteInquiry').replace('{package}', packageName);
+            this.addUserMessage(msg);
+            this.processMessage(msg);
+        }, 500);
+    },
+
+    // 환영 메시지 (다국어)
     showWelcome() {
-        this.addBotMessage(CONFIG.welcomeMessage);
-        this.showQuickReplies(['웹사이트 제작', '앱 개발', 'AI 솔루션', '견적 문의']);
+        const welcome = I18N.t('chatbot.welcome');
+        const quickReplies = I18N.t('chatbot.quickReplies');
+
+        this.addBotMessage(welcome);
+        this.showQuickReplies(quickReplies);
     },
 
     // 메시지 있는지 확인
@@ -101,19 +109,16 @@ const MuseBot = {
 
     // 메시지 처리
     processMessage(message) {
-        // 주문 진행 중
         if (this.conversationState === 'ordering') {
             this.processOrderStep(message);
             return;
         }
 
-        // 견적 진행 중
         if (this.conversationState === 'quoting') {
             this.processQuoteStep(message);
             return;
         }
 
-        // 일반 대화
         this.showTyping();
 
         setTimeout(() => {
@@ -131,28 +136,39 @@ const MuseBot = {
         }, CONFIG.typingDelay);
     },
 
-    // 응답 찾기
+    // 응답 찾기 (다국어 패턴 지원)
     findResponse(message) {
         const lowerMessage = message.toLowerCase();
+        const lang = I18N.currentLang;
 
         // 각 카테고리 검색
         for (const [key, data] of Object.entries(RESPONSES)) {
             if (key === 'default') continue;
 
-            if (data.patterns && data.patterns.some(p => lowerMessage.includes(p))) {
-                const text = this.getRandomItem(data.responses);
+            // 다국어 패턴 확인
+            const patterns = data.patterns_i18n?.[lang] || data.patterns || [];
+
+            if (patterns.some(p => lowerMessage.includes(p.toLowerCase()))) {
+                // 다국어 응답 선택
+                const responses = data.responses_i18n?.[lang] || data.responses || [];
+                const quickReplies = data.quickReplies_i18n?.[lang] || data.quickReplies || [];
+
                 return {
-                    text,
-                    quickReplies: data.quickReplies,
+                    text: this.getRandomItem(responses),
+                    quickReplies,
                     action: data.action
                 };
             }
         }
 
-        // 기본 응답
+        // 기본 응답 (다국어)
+        const defaultData = RESPONSES.default;
+        const responses = defaultData.responses_i18n?.[lang] || defaultData.responses || [];
+        const quickReplies = defaultData.quickReplies_i18n?.[lang] || defaultData.quickReplies || [];
+
         return {
-            text: this.getRandomItem(RESPONSES.default.responses),
-            quickReplies: RESPONSES.default.quickReplies
+            text: this.getRandomItem(responses),
+            quickReplies
         };
     },
 
@@ -182,7 +198,6 @@ const MuseBot = {
     processQuoteStep(message) {
         const lowerMessage = message.toLowerCase();
 
-        // 상품 선택
         for (const [id, product] of Object.entries(PRODUCTS)) {
             if (lowerMessage.includes(product.name.toLowerCase()) ||
                 lowerMessage.includes(id.toLowerCase())) {
@@ -193,31 +208,61 @@ const MuseBot = {
             }
         }
 
-        // 견적 확정
-        if (lowerMessage.includes('확정') || lowerMessage.includes('진행') || lowerMessage.includes('주문')) {
+        // 확정 키워드 (다국어)
+        const confirmKeywords = {
+            ko: ['확정', '진행', '주문'],
+            en: ['confirm', 'proceed', 'order'],
+            ja: ['確定', '進める', '注文'],
+            zh: ['确定', '进行', '订单']
+        };
+
+        const cancelKeywords = {
+            ko: ['취소', '처음'],
+            en: ['cancel', 'start over'],
+            ja: ['キャンセル', '最初'],
+            zh: ['取消', '重新']
+        };
+
+        const lang = I18N.currentLang;
+
+        if (confirmKeywords[lang]?.some(k => lowerMessage.includes(k))) {
             this.conversationState = 'ordering';
             this.startOrder();
             return;
         }
 
-        // 취소
-        if (lowerMessage.includes('취소') || lowerMessage.includes('처음')) {
+        if (cancelKeywords[lang]?.some(k => lowerMessage.includes(k))) {
             this.conversationState = 'idle';
             this.currentQuote = null;
-            this.addBotMessage('견적을 취소했습니다. 다른 도움이 필요하신가요?');
-            this.showQuickReplies(['서비스 보기', '처음으로']);
+
+            const cancelMsgs = {
+                ko: '견적을 취소했습니다. 다른 도움이 필요하신가요?',
+                en: 'Quote cancelled. Is there anything else I can help with?',
+                ja: '見積もりをキャンセルしました。他にお手伝いできることはありますか？',
+                zh: '报价已取消。还有什么可以帮您的吗？'
+            };
+
+            this.addBotMessage(cancelMsgs[lang] || cancelMsgs.en);
+            this.showQuickReplies(I18N.t('chatbot.quickReplies'));
             return;
         }
 
-        // 인식 실패
-        this.addBotMessage('어떤 서비스를 선택하시겠어요?');
-        this.showQuickReplies(['Basic 웹사이트', 'Professional', '쇼핑몰', '앱 개발']);
+        const selectMsgs = {
+            ko: '어떤 서비스를 선택하시겠어요?',
+            en: 'Which service would you like?',
+            ja: 'どのサービスをご希望ですか？',
+            zh: '您想选择哪项服务？'
+        };
+
+        this.addBotMessage(selectMsgs[lang] || selectMsgs.en);
+        this.showQuickReplies(['Basic', 'Professional', 'Enterprise']);
     },
 
     // 견적 카드 표시
     showQuoteCard() {
         let total = 0;
         let itemsHtml = '';
+        const lang = I18N.currentLang;
 
         this.currentQuote.products.forEach(product => {
             total += product.basePrice;
@@ -244,19 +289,36 @@ const MuseBot = {
 
         this.currentQuote.total = total;
 
+        const quoteLabels = {
+            ko: { title: '📋 견적서', total: '총 금액', ready: '견적이 준비되었습니다! 💰' },
+            en: { title: '📋 Quote', total: 'Total', ready: 'Your quote is ready! 💰' },
+            ja: { title: '📋 見積書', total: '合計金額', ready: 'お見積もりの準備ができました！💰' },
+            zh: { title: '📋 报价单', total: '总金额', ready: '报价已准备好！💰' }
+        };
+
+        const labels = quoteLabels[lang] || quoteLabels.en;
+
         const quoteHtml = `
             <div class="quote-card">
-                <h4>📋 견적서</h4>
+                <h4>${labels.title}</h4>
                 ${itemsHtml}
                 <div class="quote-total">
-                    <span>총 금액</span>
+                    <span>${labels.total}</span>
                     <span>${this.formatPrice(total)}</span>
                 </div>
             </div>
         `;
 
-        this.addBotMessage('견적이 준비되었습니다! 💰' + quoteHtml);
-        this.showQuickReplies(['옵션 추가', '견적 확정', '상담원 연결']);
+        this.addBotMessage(labels.ready + quoteHtml);
+
+        const quickReplies = {
+            ko: ['옵션 추가', '견적 확정', '상담원 연결'],
+            en: ['Add options', 'Confirm quote', 'Contact agent'],
+            ja: ['オプション追加', '見積確定', '担当者へ'],
+            zh: ['添加选项', '确认报价', '联系客服']
+        };
+
+        this.showQuickReplies(quickReplies[lang] || quickReplies.en);
     },
 
     // 주문 시작
@@ -267,14 +329,42 @@ const MuseBot = {
         this.askOrderInfo();
     },
 
-    // 주문 정보 요청
+    // 주문 정보 요청 (다국어)
     askOrderInfo() {
+        const lang = I18N.currentLang;
         const steps = ['collectName', 'collectEmail', 'collectPhone', 'collectDetails'];
         const currentStep = steps[this.orderStep];
 
+        const prompts = {
+            collectName: {
+                ko: '담당자 성함을 알려주세요.',
+                en: 'Please tell me your name.',
+                ja: 'ご担当者様のお名前を教えてください。',
+                zh: '请告诉我您的姓名。'
+            },
+            collectEmail: {
+                ko: '이메일 주소를 알려주세요.',
+                en: 'Please enter your email address.',
+                ja: 'メールアドレスを教えてください。',
+                zh: '请输入您的邮箱地址。'
+            },
+            collectPhone: {
+                ko: '연락처를 알려주세요.',
+                en: 'Please enter your phone number.',
+                ja: '電話番号を教えてください。',
+                zh: '请输入您的电话号码。'
+            },
+            collectDetails: {
+                ko: '추가로 전달할 내용이 있으시면 말씀해주세요. (없으면 "없음")',
+                en: 'Any additional details? (type "none" if not)',
+                ja: '追加の詳細があればお聞かせください。（なければ「なし」）',
+                zh: '还有其他详细信息吗？（没有请输入"无"）'
+            }
+        };
+
         if (currentStep) {
-            const prompt = ORDER_PROMPTS[currentStep];
-            this.addBotMessage(prompt.prompt);
+            const prompt = prompts[currentStep][lang] || prompts[currentStep].en;
+            this.addBotMessage(prompt);
         } else {
             this.confirmOrder();
         }
@@ -284,11 +374,31 @@ const MuseBot = {
     processOrderStep(message) {
         const steps = ['collectName', 'collectEmail', 'collectPhone', 'collectDetails'];
         const currentStep = steps[this.orderStep];
-        const prompt = ORDER_PROMPTS[currentStep];
+        const lang = I18N.currentLang;
 
         // 유효성 검사
-        if (prompt && !prompt.validate(message)) {
-            this.addBotMessage(prompt.errorMessage);
+        const errorMessages = {
+            collectEmail: {
+                ko: '올바른 이메일 형식을 입력해주세요.',
+                en: 'Please enter a valid email address.',
+                ja: '正しいメールアドレスを入力してください。',
+                zh: '请输入有效的邮箱地址。'
+            },
+            collectPhone: {
+                ko: '올바른 연락처를 입력해주세요.',
+                en: 'Please enter a valid phone number.',
+                ja: '正しい電話番号を入力してください。',
+                zh: '请输入有效的电话号码。'
+            }
+        };
+
+        if (currentStep === 'collectEmail' && !message.includes('@')) {
+            this.addBotMessage(errorMessages.collectEmail[lang] || errorMessages.collectEmail.en);
+            return;
+        }
+
+        if (currentStep === 'collectPhone' && message.length < 8) {
+            this.addBotMessage(errorMessages.collectPhone[lang] || errorMessages.collectPhone.en);
             return;
         }
 
@@ -312,58 +422,74 @@ const MuseBot = {
         this.askOrderInfo();
     },
 
-    // 주문 확인
+    // 주문 확인 (다국어)
     confirmOrder() {
         const orderNumber = 'ORD' + Date.now().toString(36).toUpperCase();
+        const lang = I18N.currentLang;
+
+        const labels = {
+            ko: { title: '📦 주문 정보 확인', orderNo: '주문번호', name: '담당자', email: '이메일', phone: '연락처', amount: '견적 금액' },
+            en: { title: '📦 Order Confirmation', orderNo: 'Order No.', name: 'Name', email: 'Email', phone: 'Phone', amount: 'Quote Amount' },
+            ja: { title: '📦 注文情報確認', orderNo: '注文番号', name: '担当者', email: 'メール', phone: '電話番号', amount: '見積金額' },
+            zh: { title: '📦 订单信息确认', orderNo: '订单号', name: '姓名', email: '邮箱', phone: '电话', amount: '报价金额' }
+        };
+
+        const l = labels[lang] || labels.en;
 
         const confirmHtml = `
             <div class="quote-card">
-                <h4>📦 주문 정보 확인</h4>
+                <h4>${l.title}</h4>
                 <div class="quote-item">
-                    <span>주문번호</span>
+                    <span>${l.orderNo}</span>
                     <span>${orderNumber}</span>
                 </div>
                 <div class="quote-item">
-                    <span>담당자</span>
+                    <span>${l.name}</span>
                     <span>${this.orderData.name}</span>
                 </div>
                 <div class="quote-item">
-                    <span>이메일</span>
+                    <span>${l.email}</span>
                     <span>${this.orderData.email}</span>
                 </div>
                 <div class="quote-item">
-                    <span>연락처</span>
+                    <span>${l.phone}</span>
                     <span>${this.orderData.phone}</span>
                 </div>
                 ${this.currentQuote ? `
                 <div class="quote-total">
-                    <span>견적 금액</span>
+                    <span>${l.amount}</span>
                     <span>${this.formatPrice(this.currentQuote.total)}</span>
                 </div>
                 ` : ''}
             </div>
         `;
 
-        this.addBotMessage(`주문이 접수되었습니다! 🎉${confirmHtml}\n\n담당자가 빠른 시일 내에 연락드리겠습니다.\n이메일로 상세 안내가 발송됩니다.`);
+        const successMsgs = {
+            ko: `주문이 접수되었습니다! 🎉${confirmHtml}\n\n담당자가 빠른 시일 내에 연락드리겠습니다.`,
+            en: `Order submitted! 🎉${confirmHtml}\n\nWe will contact you shortly.`,
+            ja: `ご注文を承りました！🎉${confirmHtml}\n\n担当者より早急にご連絡いたします。`,
+            zh: `订单已提交！🎉${confirmHtml}\n\n我们将尽快与您联系。`
+        };
 
-        // 주문 저장
+        this.addBotMessage(successMsgs[lang] || successMsgs.en);
+
         this.saveOrder({
             orderNumber,
             ...this.orderData,
             quote: this.currentQuote,
+            language: lang,
             createdAt: new Date().toISOString()
         });
 
-        // 상태 초기화
         this.conversationState = 'idle';
         this.orderStep = 0;
         this.orderData = {};
         this.currentQuote = null;
 
-        this.showQuickReplies(['다른 서비스 보기', '처음으로']);
+        this.showQuickReplies(I18N.t('chatbot.quickReplies'));
     },
 
-    // 주문 저장 (LocalStorage)
+    // 주문 저장
     saveOrder(order) {
         const orders = JSON.parse(localStorage.getItem('muse_orders') || '[]');
         orders.push(order);
@@ -410,6 +536,8 @@ const MuseBot = {
         const container = document.getElementById('quick-replies');
         container.innerHTML = '';
 
+        if (!Array.isArray(replies)) return;
+
         replies.forEach(reply => {
             const btn = document.createElement('button');
             btn.className = 'quick-reply';
@@ -454,39 +582,45 @@ const MuseBot = {
             text,
             timestamp: new Date().toISOString()
         });
-        // 최근 50개만 유지
         if (history.length > 50) history.shift();
         localStorage.setItem('muse_chat_history', JSON.stringify(history));
     },
 
-    // 대화 불러오기
-    loadConversation() {
-        const history = JSON.parse(localStorage.getItem('muse_chat_history') || '[]');
-        const container = document.getElementById('chatbot-messages');
-
-        // 최근 10개만 표시
-        history.slice(-10).forEach(msg => {
-            const messageEl = document.createElement('div');
-            messageEl.className = `message ${msg.role}`;
-            messageEl.innerHTML = `
-                ${msg.text}
-                <div class="time">${this.formatTime(new Date(msg.timestamp))}</div>
-            `;
-            container.appendChild(messageEl);
-        });
-    },
-
     // 유틸리티
     getRandomItem(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return '';
         return arr[Math.floor(Math.random() * arr.length)];
     },
 
     formatPrice(price) {
-        return price.toLocaleString('ko-KR') + '원';
+        const lang = I18N.currentLang;
+        const formats = {
+            ko: { locale: 'ko-KR', suffix: '원' },
+            en: { locale: 'en-US', prefix: '$', divisor: 1000 },
+            ja: { locale: 'ja-JP', prefix: '¥', divisor: 100 },
+            zh: { locale: 'zh-CN', prefix: '¥', divisor: 100 }
+        };
+
+        const fmt = formats[lang] || formats.ko;
+        let amount = price;
+
+        if (fmt.divisor) {
+            amount = Math.round(price / fmt.divisor);
+        }
+
+        const formatted = amount.toLocaleString(fmt.locale);
+
+        if (fmt.prefix) {
+            return fmt.prefix + formatted;
+        }
+        return formatted + (fmt.suffix || '');
     },
 
     formatTime(date) {
-        return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString(I18N.currentLang === 'ko' ? 'ko-KR' : 'en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     }
 };
 
