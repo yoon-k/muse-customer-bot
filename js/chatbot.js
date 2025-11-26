@@ -15,15 +15,7 @@ const MuseBot = {
     // 초기화
     init() {
         this.sessionId = this.generateSessionId();
-        this.loadConversation();
-
-        // 3초 후 자동 인사
-        setTimeout(() => {
-            if (!this.hasMessages()) {
-                this.showWelcome();
-            }
-        }, 2000);
-
+        // 닫을 때 대화가 지워지므로 loadConversation 불필요
         console.log('MUSE Customer Bot initialized');
     },
 
@@ -51,6 +43,28 @@ const MuseBot = {
     close() {
         this.isOpen = false;
         document.getElementById('chatbot-widget').classList.remove('open');
+        this.clearConversation();
+    },
+
+    // 대화 초기화
+    clearConversation() {
+        // 화면의 메시지 삭제
+        const container = document.getElementById('chatbot-messages');
+        container.innerHTML = '';
+
+        // 빠른 응답 버튼 삭제
+        const quickReplies = document.getElementById('quick-replies');
+        if (quickReplies) quickReplies.innerHTML = '';
+
+        // LocalStorage 대화 기록 삭제
+        localStorage.removeItem('muse_chat_history');
+
+        // 상태 초기화
+        this.conversationState = 'idle';
+        this.currentQuote = null;
+        this.orderData = {};
+        this.orderStep = 0;
+        this.sessionId = this.generateSessionId();
     },
 
     // 메시지와 함께 열기
