@@ -52,17 +52,16 @@ install.bat
 
 ```
 muse-customer-bot/
-├── frontend/
-│   ├── index.html          # Main page with chatbot widget
-│   ├── admin.html          # Admin dashboard
-│   ├── css/
-│   │   └── style.css       # Styles
-│   └── js/
-│       ├── config.js       # Products & pricing config
-│       ├── responses.js    # Response templates
-│       ├── chatbot.js      # Rule-based chatbot
-│       ├── ai-chatbot.js   # AI-powered chatbot ⭐
-│       └── widget.js       # Embeddable widget
+├── index.html              # Main page with chatbot widget
+├── admin.html              # Admin dashboard
+├── css/
+│   └── style.css           # Styles
+├── js/
+│   ├── config.js           # Products & pricing config
+│   ├── responses.js        # Response templates
+│   ├── chatbot.js          # Rule-based chatbot
+│   ├── ai-chatbot.js       # AI-powered chatbot ⭐
+│   └── widget.js           # Embeddable widget
 ├── scripts/
 │   └── setup.js            # Cross-platform setup
 ├── server.js               # Local dev server
@@ -131,7 +130,7 @@ MuseAIBot.setProvider('cloudflare');
 
 ```html
 <!-- Add to any website -->
-<script src="https://yoon-k.github.io/muse-customer-bot/frontend/js/widget.js"></script>
+<script src="https://yoon-k.github.io/muse-customer-bot/js/widget.js"></script>
 <script>
   MuseBot.init({
     position: 'bottom-right',
@@ -143,7 +142,7 @@ MuseAIBot.setProvider('cloudflare');
 
 ## ⚙️ Customization
 
-### Products & Pricing (`frontend/js/config.js`)
+### Products & Pricing (`js/config.js`)
 
 ```javascript
 const PRODUCTS = {
@@ -158,7 +157,7 @@ const PRODUCTS = {
 };
 ```
 
-### Response Templates (`frontend/js/responses.js`)
+### Response Templates (`js/responses.js`)
 
 ```javascript
 const RESPONSES = {
@@ -173,7 +172,7 @@ const RESPONSES = {
 };
 ```
 
-### AI System Prompt (`frontend/js/ai-chatbot.js`)
+### AI System Prompt (`js/ai-chatbot.js`)
 
 ```javascript
 MuseAIBot.config.businessContext = `
