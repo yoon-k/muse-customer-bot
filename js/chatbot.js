@@ -11,11 +11,54 @@ const MuseBot = {
     currentQuote: null,
     orderData: {},
     orderStep: 0,
+    conversationHistory: [],
+
+    // AI 설정
+    aiConfig: {
+        enabled: false,  // AI 모드 활성화 여부
+        apiKey: null,    // OpenAI API Key
+        model: 'gpt-4o-mini',
+        fallbackToAI: true,  // 규칙 기반 응답 못 찾으면 AI 사용
+        systemPrompt: `You are MUSE Studio's friendly customer service assistant. You help customers with:
+- Web development services (from $400)
+- App development (from $2,500)
+- AI solutions (from $800)
+- Design services (from $250)
+
+Be helpful, professional but friendly. Answer in the customer's language.
+For pricing inquiries, guide them to request a quote.
+Keep responses concise (2-3 sentences max).`
+    },
 
     // 초기화
     init() {
         this.sessionId = this.generateSessionId();
-        console.log('MUSE Customer Bot initialized');
+        this.loadAIConfig();
+        console.log('MUSE Customer Bot initialized', this.aiConfig.enabled ? '(AI Mode)' : '(Rule-based Mode)');
+    },
+
+    // AI 설정 로드
+    loadAIConfig() {
+        const savedKey = localStorage.getItem('muse_openai_key');
+        if (savedKey) {
+            this.aiConfig.apiKey = savedKey;
+            this.aiConfig.enabled = true;
+        }
+    },
+
+    // AI 모드 설정
+    setAIMode(apiKey) {
+        if (apiKey) {
+            this.aiConfig.apiKey = apiKey;
+            this.aiConfig.enabled = true;
+            localStorage.setItem('muse_openai_key', apiKey);
+            console.log('AI Mode enabled');
+        } else {
+            this.aiConfig.apiKey = null;
+            this.aiConfig.enabled = false;
+            localStorage.removeItem('muse_openai_key');
+            console.log('AI Mode disabled');
+        }
     },
 
     // 세션 ID 생성
@@ -108,7 +151,7 @@ const MuseBot = {
     },
 
     // 메시지 처리
-    processMessage(message) {
+    async processMessage(message) {
         if (this.conversationState === 'ordering') {
             this.processOrderStep(message);
             return;
@@ -121,10 +164,33 @@ const MuseBot = {
 
         this.showTyping();
 
-        setTimeout(() => {
+        // 대화 기록에 추가
+        this.conversationHistory.push({ role: 'user', content: message });
+
+        try {
+            let response;
+
+            // AI 모드가 활성화되어 있으면 AI 우선 사용
+            if (this.aiConfig.enabled) {
+                response = await this.getAIResponse(message);
+            } else {
+                // 규칙 기반 응답 찾기
+                response = this.findResponse(message);
+
+                // 규칙 기반 응답이 기본값이고, AI 폴백이 활성화되어 있으면 AI 시도
+                if (response.isDefault && this.aiConfig.fallbackToAI && this.aiConfig.apiKey) {
+                    const aiResponse = await this.getAIResponse(message);
+                    if (aiResponse && !aiResponse.isError) {
+                        response = aiResponse;
+                    }
+                }
+            }
+
             this.hideTyping();
-            const response = this.findResponse(message);
             this.addBotMessage(response.text);
+
+            // 대화 기록에 봇 응답 추가
+            this.conversationHistory.push({ role: 'assistant', content: response.text });
 
             if (response.quickReplies) {
                 this.showQuickReplies(response.quickReplies);
@@ -133,7 +199,110 @@ const MuseBot = {
             if (response.action) {
                 this.executeAction(response.action, message);
             }
-        }, CONFIG.typingDelay);
+        } catch (error) {
+            this.hideTyping();
+            console.error('Message processing error:', error);
+            const fallbackResponse = this.findResponse(message);
+            this.addBotMessage(fallbackResponse.text);
+            if (fallbackResponse.quickReplies) {
+                this.showQuickReplies(fallbackResponse.quickReplies);
+            }
+        }
+    },
+
+    // AI API 호출
+    async getAIResponse(message) {
+        if (!this.aiConfig.apiKey) {
+            return null;
+        }
+
+        const lang = I18N.currentLang;
+        const langNames = { ko: 'Korean', en: 'English', ja: 'Japanese', zh: 'Chinese' };
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.aiConfig.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: this.aiConfig.model,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: this.aiConfig.systemPrompt + `\n\nRespond in ${langNames[lang] || 'English'}.`
+                        },
+                        ...this.conversationHistory.slice(-10) // 최근 10개 메시지만 전송
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const aiText = data.choices[0]?.message?.content || '';
+
+            // 빠른 응답 버튼 생성
+            const quickReplies = this.generateQuickRepliesFromContext(aiText, lang);
+
+            return {
+                text: aiText,
+                quickReplies,
+                isAI: true
+            };
+        } catch (error) {
+            console.error('AI API error:', error);
+            return {
+                text: '',
+                isError: true
+            };
+        }
+    },
+
+    // 컨텍스트에 따른 빠른 응답 버튼 생성
+    generateQuickRepliesFromContext(response, lang) {
+        const lowerResponse = response.toLowerCase();
+        const quickRepliesMap = {
+            ko: {
+                pricing: ['웹사이트', '앱 개발', 'AI 솔루션', '견적 받기'],
+                service: ['서비스 보기', '견적 문의', '상담원 연결'],
+                default: ['서비스 보기', '견적 받기', '연락하기']
+            },
+            en: {
+                pricing: ['Website', 'App Dev', 'AI Solutions', 'Get Quote'],
+                service: ['View Services', 'Get Quote', 'Contact Us'],
+                default: ['Services', 'Get Quote', 'Contact']
+            },
+            ja: {
+                pricing: ['ウェブサイト', 'アプリ開発', 'AIソリューション', '見積もり'],
+                service: ['サービス一覧', '見積もり依頼', 'お問い合わせ'],
+                default: ['サービス', '見積もり', 'お問い合わせ']
+            },
+            zh: {
+                pricing: ['网站', '应用开发', 'AI解决方案', '获取报价'],
+                service: ['查看服务', '获取报价', '联系我们'],
+                default: ['服务', '报价', '联系']
+            }
+        };
+
+        const replies = quickRepliesMap[lang] || quickRepliesMap.en;
+
+        if (lowerResponse.includes('price') || lowerResponse.includes('cost') ||
+            lowerResponse.includes('가격') || lowerResponse.includes('비용')) {
+            return replies.pricing;
+        }
+
+        if (lowerResponse.includes('service') || lowerResponse.includes('help') ||
+            lowerResponse.includes('서비스') || lowerResponse.includes('도움')) {
+            return replies.service;
+        }
+
+        return replies.default;
     },
 
     // 응답 찾기 (다국어 패턴 지원)
@@ -168,7 +337,8 @@ const MuseBot = {
 
         return {
             text: this.getRandomItem(responses),
-            quickReplies
+            quickReplies,
+            isDefault: true  // 기본 응답임을 표시 (AI 폴백 용도)
         };
     },
 
